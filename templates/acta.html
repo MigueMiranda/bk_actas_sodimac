@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Acta de Asignación</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 40px;
+      color: #333;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header img {
+      max-height: 80px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .contenido {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .seccion {
+      margin-top: 30px;
+    }
+
+    .seccion h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .firmas {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 60px;
+    }
+
+    .firma {
+      width: 45%;
+      text-align: center;
+    }
+
+    .firma-linea {
+      margin-top: 60px;
+      border-top: 1px solid #000;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    table th, table td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: left;
+    }
+
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="./logoSD.png" alt="Logo de la empresa" />
+    <h1>Acta de Asignación de Activo</h1>
+    <p>Fecha: {{fecha}}</p>
+  </header>
+
+  <div class="contenido">
+    <p>Yo, <strong>{{usuario}}</strong>, certifico haber recibido el siguiente activo:</p>
+
+    <div class="seccion">
+      <h2>Detalles del Activo</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Serial</th>
+            <th>Descripción</th>
+            <th>Placa</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each elementos}}
+            <tr>
+              <td>{{this.serial}}</td>
+              <td>{{this.descripcion}}</td>
+              <td>{{this.placa}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      <p><strong>Ubicación:</strong> {{ubicacion}}</p>
+    </div>
+
+    <div class="seccion">
+      <h2>Condiciones</h2>
+      <p>Me comprometo a hacer uso adecuado del activo, reportar cualquier daño o pérdida y devolverlo al finalizar mi vínculo con la empresa.</p>
+    </div>
+  </div>
+
+  <div class="firmas">
+    <div class="firma">
+      <div class="firma-linea"></div>
+      <p><strong>{{usuario}}</strong><br>FUNCIONARIO QUE RECIBE</p>
+    </div>
+    <div class="firma">
+      <div class="firma-linea"></div>
+      <p><strong>Miguel Angel Miranda Manjarres</strong><br>ANALISTA QUE ENTREGA</p>
+    </div>
+  </div>
+
+</body>
+</html>
