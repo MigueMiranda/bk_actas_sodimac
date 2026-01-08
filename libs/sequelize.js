@@ -5,6 +5,9 @@ const setupModels = require('./../db/models');
 const options = {
   dialect: 'postgres',
   logging: config.isProd ? false : (msg) => console.log(`[Sequelize] ${msg}`),
+  dialectOptions: config.isProd
+  ? { ssl: { rejectUnauthorized: false } }
+  : {},
 };
 
 if (config.isProd) {

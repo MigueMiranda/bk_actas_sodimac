@@ -52,4 +52,5 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 app.listen(port, () => {
   console.log('Mi port' +  port);
   console.log('¡Servidor debería estar escuchando!');
+  console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'OK' : 'NOT SET');
 });
