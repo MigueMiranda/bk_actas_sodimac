@@ -14,8 +14,4 @@ router.get('/',
   }
 });
 
-router.post('/', (req, res) => {
-  res.json({ message: 'Usuario creado', data: req.body });
-});
-
 module.exports = router;
