@@ -20,6 +20,7 @@ class ElementosService {
         },
       ],
     });
+    console.log('Elementos:',rta.length);
     return rta;
   }
 

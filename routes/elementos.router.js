@@ -4,14 +4,15 @@ const router = express.Router();
 const ElementosService = require('./../services/elementos.service');
 const service = new ElementosService();
 
-router.get('/', 
-  async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    const elemnts = await service.find();
-    res.json(elemnts);
+    res.set('Cache-Control', 'no-store');
+    const elements = await service.find();
+    res.json(elements);
   } catch (error) {
     next(error);
   }
 });
+
 
 module.exports = router;

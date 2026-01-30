@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-//const routerApi = require('./routes');
+const routerApi = require('./routes');
 const { checkApiKey } = require('./middlewares/auth.handler');
 const path = require('path');
 
@@ -31,17 +31,19 @@ const options = {
 }
 app.use(cors(options));
 
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
+
 //require('./utils/auth/')
 
 app.get('/', (req, res) => {
   res.send('Hola mi server en express');
 });
 
-app.get('/nueva-ruta', checkApiKey, (req, res) => {
-  res.send('Hola, soy una nueva ruta');
-});
-
-//routerApi(app);
+routerApi(app);
 
 app.use(logErrors);
 app.use(ormErrorHandeler);

@@ -26,7 +26,7 @@
   "dependencies": {
     "@hapi/boom": "^9.1.4",
     "bcrypt": "^5.1.1",
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "csv-parse": "^5.6.0",
     "csv-parser": "^3.2.0",
     "dotenv": "^16.5.0",
@@ -34,6 +34,7 @@
     "handlebars": "^4.7.8",
     "joi": "^17.4.2",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
     "mysql2": "^3.13.0",
     "nodemailer": "^6.10.1",
     "passport": "^0.7.0",
