@@ -23,12 +23,6 @@ const MovimientoSchema = {
     field: "contacto_id",
     allowNull: false,
     type: DataTypes.STRING,
-    references: {
-      model: "users",
-      key: "id",
-    },
-    onUpdate: "CASCADE",
-    onDelete: "RESTRICT",
   },
   estadoAsignacion: {
     field: "estado_asignacion",
@@ -80,7 +74,7 @@ class Movimiento extends Model {
 
     this.belongsTo(models.User, {
       as: "users",
-      foreignKey: "contacto_id",
+      foreignKey: "contactoId",
     });
 
     this.belongsTo(models.Asignaciones, {
