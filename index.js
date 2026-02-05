@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require('express');
 const cors = require('cors');
 const routerApi = require('./routes');
@@ -37,7 +38,7 @@ app.use((req, res, next) => {
 });
 
 
-//require('./utils/auth/')
+require('./utils/auth/')
 
 app.get('/', (req, res) => {
   res.send('Hola mi server en express');
@@ -45,13 +46,13 @@ app.get('/', (req, res) => {
 
 routerApi(app);
 
+app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(logErrors);
 app.use(ormErrorHandeler);
 app.use(boomErrorHandler);
 app.use(errorHandler);
-app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.listen(port, () => {
-  console.log('Mi port' +  port);
+  console.log('Mi port' + port);
   console.log('¡Servidor debería estar escuchando!');
 });

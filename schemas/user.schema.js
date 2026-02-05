@@ -19,7 +19,7 @@ const createUserSchema = Joi.object({
 });
 
 const getUserSchema = Joi.object({
-  id: id.required(),
+  username: username.required(),
 });
 
 const deleteUserSchema = Joi.object({

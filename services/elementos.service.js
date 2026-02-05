@@ -32,6 +32,13 @@ class ElementosService {
     return elemento;
   }
 
+  async findByCampo(campo, valor) {
+    const elemento = await models.Elemento.findOne({
+      where: { [campo]: valor }
+    })
+    return elemento;
+  }
+
   async update(id, changes) {
     const elemento = await this.findOne(id);
     await elemento.update(changes);

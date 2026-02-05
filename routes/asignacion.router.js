@@ -4,26 +4,32 @@ const router = express.Router();
 const AsignacionService = require("../services/asignacion.service");
 const service = new AsignacionService();
 
-router.post("/notificar-asignacion", async (req, res) => {
+router.post('/notificar-asignacion', async (req, res) => {
   try {
-    const { activo, contacto, ubicacion } = req.body;
-    console.log("REQ.BODY COMPLETO:", req.body);
-    const activosData = Array.isArray(activo) ? activo: activo;
-    const contactoData = Array.isArray(contacto) ? contacto[0]: contacto;
-    const ubicacionData = Array.isArray(ubicacion) ? ubicacion[0]: ubicacion;
+    const { activos, responsable, ubicacion } = req.body;
+
+    if (!activos || !responsable || !ubicacion) {
+      return res.status(400).json({ message: 'Payload incompleto' });
+    }
 
     const rta = await service.aprobarAsignment(
-      activosData,
-      contactoData,
-      ubicacionData
+      activos,
+      responsable,
+      ubicacion
     );
 
-    res.json(rta);
+    res.status(200).json({
+      ok: true,
+      message: 'Acta enviada para aprobación',
+      data: rta
+    });
+
   } catch (error) {
-    console.error("Error en notificación:", error);
+    console.error('❌ Error en notificación:', error);
     res.status(500).json({ message: error.message });
   }
 });
+
 
 router.post("/confirmar-asignacion", async (req, res) => {
   try {

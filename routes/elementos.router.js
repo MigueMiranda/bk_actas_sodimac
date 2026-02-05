@@ -14,5 +14,20 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+router.get('/:campo/:valor',
+  async (req, res, next) => {
+    try {
+      const { campo, valor } = req.params;
+      if (!['serial', 'placa'].includes(campo)) {
+        return res.status(400).json({ message: "Campo no válido" });
+      }
+      const element = await service.findByCampo(campo, valor);
+      res.json(element);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 
 module.exports = router;

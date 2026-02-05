@@ -24,13 +24,12 @@ services:
     build: .
     container_name: bk_actas_sodimac_app # Dale un nombre único a tu contenedor para evitar confusiones.
     # command: npm start # 💡 Si tu Dockerfile no define un comando de inicio por defecto (CMD o ENTRYPOINT) o quieres sobrescribirlo, puedes especificarlo aquí.
+    # Cargar variables desde el archivo .env del proyecto para evitar valores hardcodeados
+    env_file:
+      - .env
     environment:
-      # Pasa las variables de entorno que tu aplicación de Node.js necesita.
-      # Asegúrate de que los nombres de las variables aquí coincidan con los que usas en tu código (ej. process.env.DATABASE_URL).
-      DATABASE_URL: postgres://admin:Sodimac25*@postgres:5432/actas_sodimac # ✅ 'postgres' es el nombre del servicio de la BD en Docker Compose.
-      EMAIL_USER: tu_correo@office365.com # Reemplaza con tu usuario de correo.
-      EMAIL_PASS: tu_contraseña_o_app_password # Reemplaza con tu contraseña o contraseña de aplicación.
-      PORT: 3000 # ✅ Asegúrate de que tu aplicación Express en `index.js` esté escuchando en este puerto (app.listen(3000, ...)).
+      DATABASE_URL: postgres://admin:Sodimac25*@postgres:5432/actas_sodimac
+      PORT: 3000
     ports:
       - "3000:3000" # ✅ **CRÍTICO:** Mapea el puerto 3000 de tu máquina host al puerto 3000 dentro del contenedor.
     depends_on:
@@ -39,7 +38,6 @@ services:
       - .:/app # ✅ Mapea tu código fuente local (directorio actual '.') al directorio '/app' dentro del contenedor. Útil para desarrollo con Nodemon.
       - /app/node_modules # ✅ **IMPORTANTE:** Esto excluye la carpeta `node_modules` del mapeo anterior para usar las dependencias instaladas dentro del contenedor, no las de tu host.
     restart: unless-stopped # ✨ Buena práctica: el contenedor intentará reiniciarse automáticamente a menos que lo detengas manualmente.
-
 
 volumes:
   postgres_data:

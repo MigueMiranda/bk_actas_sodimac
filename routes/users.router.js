@@ -17,12 +17,12 @@ router.get('/',
   }
 });
 
-router.get('/:id',
+router.get('/:username',
   validatorHandler(getUserSchema, 'params'),
   async (req, res, next) => {
     try {
-      const { id } = req.params;
-      const users = await service.findOne(id);
+      const { username } = req.params;
+      const users = await service.findOneByUsername(username);
       res.json(users);
     } catch (error) {
       next(error);

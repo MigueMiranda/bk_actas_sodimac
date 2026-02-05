@@ -22,7 +22,7 @@ class UserService {
     return rta;
   }
 
-  async findByUsername(username) {
+  async findOneByUsername(username) {
     const rta =  await models.User.findOne({
       where: { username }
     });

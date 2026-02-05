@@ -40,9 +40,10 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
+    "pdfkit": "^0.13.0",
     "pg": "^8.16.0",
     "pg-hstore": "^2.3.4",
-    "puppeteer": "^24.10.1",
+    "puppeteer": "^24.36.1",
     "sequelize": "^6.37.7",
     "xlsx": "^0.18.5"
   },
