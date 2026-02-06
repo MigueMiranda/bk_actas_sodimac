@@ -6,6 +6,7 @@ const tiendasRouter = require('./tiendas.router');
 const elementosRouter = require('./elementos.router');
 const asignacionRouter = require('./asignacion.router');
 const movimientosRouter = require('./movimientos.router');
+const dashboardRouter = require('./dashboard.router');
 
 function routerApi(app) {
     const router = express.Router();
@@ -16,6 +17,7 @@ function routerApi(app) {
     router.use('/elementos', elementosRouter);
     router.use('/asignacion', asignacionRouter);
     router.use('/movimientos', movimientosRouter);
+    router.use('/dashboard', dashboardRouter);
 }
 
 module.exports = routerApi;
