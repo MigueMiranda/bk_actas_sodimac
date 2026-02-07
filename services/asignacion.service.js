@@ -5,6 +5,8 @@ const handlebars = require("handlebars");
 const { config } = require("../config/config");
 const crypto = require("crypto");
 const { models } = require("../libs/sequelize");
+const boom = require('@hapi/boom');
+
 
 const NotificacionService = require("./notificacion.service");
 const service = new NotificacionService();
@@ -92,6 +94,12 @@ class AsignacionService {
   }
 
   async confirmAsignment(token, respuesta, notificacion) {
+    // ✅ Validar parámetros de entrada
+    if (!token || !respuesta) {
+      throw boom.badRequest("Token y respuesta son requeridos");
+    }
+
+    // ✅ Buscar asignación
     const asignacion = await models.Asignaciones.findOne({
       where: { token },
       include: [
@@ -112,27 +120,30 @@ class AsignacionService {
       ],
     });
 
-    if (respuesta === "aprobado") {
-      if (
-        !asignacion ||
-        asignacion.estado_asignacion === "aprobado" ||
-        (asignacion.tokenExpire && new Date() > asignacion.tokenExpire)
-      ) {
-        throw boom.badRequest("Token inválido o asignación ya confirmada");
-      }
+    // ✅ VALIDACIÓN CRÍTICA UNIFICADA - exactamente como la tenías originalmente
+    // Solo puede procesar si: existe, está pendiente Y el token NO ha expirado
+    if (
+      !asignacion ||
+      asignacion.estado_asignacion !== "pendiente" ||
+      (asignacion.tokenExpire && new Date(asignacion.tokenExpire) < new Date())
+    ) {
+      throw boom.badRequest("Token expirado o asignación ya confirmada");
+    }
 
+    // === CASO APROBADO ===
+    if (respuesta === "aprobado") {
       const elementos = asignacion.elementos.map((e) => ({
         serial: e.serial,
         placa: e.elemento?.placa,
         descripcion: e.elemento?.tipo || "Sin descripción",
         ubicacion: e.elemento?.ubicacion,
+        marca: e.elemento?.fabricante,
+        modelo: e.elemento?.modelo,
       }));
 
       const ubicacion = elementos[0]?.ubicacion || "Sin ubicación";
-
       let actaPath = "N/A";
 
-      // ✅ Solo si notificacion === true generamos acta y preparamos correo
       if (notificacion) {
         actaPath = await this.generarActaPDF(
           asignacion.users,
@@ -142,47 +153,117 @@ class AsignacionService {
         );
       }
 
-      // ✅ Marcar todos los movimientos como aprobados
-      await models.Movimiento.update(
-        {
-          estadoAsignacion: "aprobado",
-          caso: "generado",
-          acta: actaPath,
-        },
-        {
-          where: { asignacionId: asignacion.id },
-        }
+      // ✅ Esperar todas las actualizaciones de forma secuencial
+      await this.updateMovimiento(
+        asignacion.id,
+        "aprobado",
+        "generado",
+        actaPath
       );
 
-      // ✅ Actualizar elementos asociados
       const datosMovimiento = await models.Movimiento.findAll({
         where: { asignacionId: asignacion.id },
       });
 
-      for (const a of datosMovimiento) {
-        await models.Elemento.update(
-          {
-            ubicacion: a.ubicacionElemento,
-            estado: a.estadoElemento,
-            userId: a.contactoId,
-            tiendaId: a.tiendaId,
-          },
-          {
-            where: { serial: a.serial },
-          }
-        );
+      await this.updateElemento(datosMovimiento);
+
+      // ✅ CRÍTICO: Esta actualización cambia el estado de "pendiente" a "aprobado"
+      await this.updateAsignacion(asignacion.id, "aprobado", actaPath);
+
+      if (notificacion) {
+        await this.notificacion(elementos, asignacion, actaPath);
       }
 
-      // ✅ Actualizar asignación
-      asignacion.estado_asignacion = "aprobado";
-      asignacion.acta = actaPath;
-      await asignacion.save();
+      return { message: "Asignación confirmada exitosamente." };
+    }
 
-      // ✅ Enviar correo solo si notificación es true
+    // === CASO RECHAZADO ===
+    else if (respuesta === "rechazado") {
+      await this.updateMovimiento(
+        asignacion.id,
+        "rechazado",
+        "Rechazado por el usuario",
+        "N/A"
+      );
+
+      // ✅ CRÍTICO: Esta actualización cambia el estado de "pendiente" a "rechazado"
+      await this.updateAsignacion(asignacion.id, "rechazado", "N/A");
+
       if (notificacion) {
-        const elementosHtml = elementos
-          .map(
-            (e) => `
+        await this.notificacion(null, asignacion, "N/A");
+      }
+
+      return { message: "Asignación rechazada." };
+    }
+
+    // === RESPUESTA INVÁLIDA ===
+    else {
+      throw boom.badRequest("Respuesta inválida. Use 'aprobado' o 'rechazado'");
+    }
+  }
+
+  async generarActaPDF(contacto, activos, ubicacion, asignacionId) {
+    console.log("Responsable: ", contacto)
+    console.log("Activos para el acta: ", activos)
+    return await generarActaPDF({
+      responsable: {
+        nombre: contacto.name,
+        cedula: contacto.id,
+        cargo: contacto.cargo,
+        username: contacto.username
+      },
+      activos,
+      ubicacion,
+      asignacionId,
+    });
+  }
+
+  async updateMovimiento(asignacionId, estadoAsignacion, caso, acta) {
+    return await models.Movimiento.update(
+      {
+        estadoAsignacion: estadoAsignacion,
+        caso: caso,
+        acta: acta,
+      },
+      {
+        where: { asignacionId: asignacionId },
+      }
+    );
+  }
+
+  async updateElemento(datosElemento) {
+    for (const a of datosElemento) {
+      await models.Elemento.update(
+        {
+          ubicacion: a.ubicacionElemento,
+          estado: a.estadoElemento,
+          userId: a.contactoId,
+          tiendaId: a.tiendaId,
+        },
+        {
+          where: { serial: a.serial },
+        }
+      );
+    }
+  }
+
+  async updateAsignacion(id, estado, acta) {
+    return await models.Asignaciones.update(
+      {
+        estado_asignacion: estado,
+        acta: acta,
+      },
+      {
+        where: { id: id },
+      }
+    );
+  }
+
+  async notificacion(elementos, asignacion, actaPath) {
+    if (elementos) {
+      const elementosHtml = elementos
+        .map(
+          (e) => `
             <li>
               <strong>Serial:</strong> ${e.serial}<br/>
               <strong>Tipo:</strong> ${e.descripcion}<br/>
@@ -190,73 +271,28 @@ class AsignacionService {
             </li>
             <p>Ubicación: ${e.ubicacion || "Sin ubicación"}.</p>
           `
-          )
-          .join("");
+        )
+        .join("");
 
-        const mailOptions = {
-          to: "mmiranda@homecenter.co",
-          nameUser: asignacion.users.nombre,
-          elementos: elementos.length,
-          activos: elementosHtml,
-          path: actaPath,
-        };
+      const mailOptions = {
+        to: "mmiranda@homecenter.co",
+        nameUser: asignacion.users.nombre,
+        elementos: elementos.length,
+        activos: elementosHtml,
+        path: actaPath,
+      };
 
-        await service.mailOptions(mailOptions, "confirmacion");
-        return { estado: "exito", message: "Asignación confirmada correctamente", actaPath };
-      }
-
-      return { message: "Asignación confirmada sin notificación." };
+      await service.mailOptions(mailOptions, "confirmacion");
+      return { estado: "exito", message: "Asignación confirmada correctamente", actaPath };
     }
+    const mailOptions = {
+      to: "mmiranda@homecenter.co",
+      nameUser: asignacion.users.nombre,
+    };
+    await service.mailOptions(mailOptions, "rechazado");
+    return { estado: "error", message: "Asignación rechazada por el usuario" };
 
-    // === CASO RECHAZADO ===
-    else {
-      if (
-        !asignacion ||
-        asignacion.estado_asignacion === "rechazado" ||
-        (asignacion.tokenExpire && new Date() > asignacion.tokenExpire)
-      ) {
-        throw new Error("Token inválido o asignación ya confirmada.");
-      }
 
-      await models.Movimiento.update(
-        {
-          estadoAsignacion: "rechazado",
-          caso: "Rechazado por el usuario",
-          acta: "N/A",
-        },
-        {
-          where: { asignacionId: asignacion.id },
-        }
-      );
-
-      asignacion.estado_asignacion = "rechazado";
-      asignacion.acta = "N/A";
-      await asignacion.save();
-
-      if (notificacion) {
-        const mailOptions = {
-          to: "mmiranda@homecenter.co",
-          nameUser: asignacion.users.nombre,
-        };
-        await service.mailOptions(mailOptions, "rechazado");
-        return { estado: "error", message: "Asignación rechazada por el usuario" };
-      }
-
-      return { message: "Asignación rechazada sin notificación." };
-    }
-  }
-
-  async generarActaPDF(contacto, activos, ubicacion, asignacionId) {
-    return await generarActaPDF({
-      responsable: {
-        nombre: contacto.name,
-        cedula: contacto.id,
-        cargo: contacto.cargo,
-      },
-      activos,
-      ubicacion,
-      asignacionId,
-    });
   }
 
   async unpdateDatosTecnicos(datosTecnicos) {

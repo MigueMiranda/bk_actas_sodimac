@@ -22,7 +22,7 @@ function generarActaPDF({ responsable, activos, ubicacion, asignacionId }) {
         // ===== ENCABEZADO =====
         doc
             .fontSize(16)
-            .text('ACTA DE ASIGNACIÓN DE ACTIVOS TI', { align: 'center' })
+            .text('ACTA DE ASIGNACIÓN DE ACTIVOS TI', { align: 'center', bold: true })
             .moveDown(1.5);
 
         doc
@@ -34,7 +34,7 @@ function generarActaPDF({ responsable, activos, ubicacion, asignacionId }) {
         // ===== DATOS RESPONSABLE =====
         doc
             .fontSize(12)
-            .text('Datos del responsable', { underline: true })
+            .text('Datos del responsable', { align: 'center', underline: true, bold: true })
             .moveDown(0.5);
 
         doc
@@ -42,42 +42,52 @@ function generarActaPDF({ responsable, activos, ubicacion, asignacionId }) {
             .text(`Nombre: ${responsable.nombre}`)
             .text(`Cédula: ${responsable.cedula}`)
             .text(`Cargo: ${responsable.cargo}`)
-            .text(`Usuario: ${responsable.usuario}`)
+            .text(`Usuario: ${responsable.username}`)
             .moveDown();
 
         // ===== TABLA ACTIVOS =====
         doc
-            .fontSize(12)
-            .text('Activos asignados', { underline: true, align: 'center' })
+            .fontSize(10)
+            .text('Activos asignados', { underline: true, align: 'center', bold: true })
             .moveDown(0.8);
 
         const tableTop = doc.y;
-        const colWidths = [180, 120, 120];
+        const colWidths = [120, 80, 80, 100, 95];
         const tableWidth = colWidths.reduce((a, b) => a + b, 0);
         const startX = (doc.page.width - tableWidth) / 2;
         const rowHeight = 20;
 
         // ===== ENCABEZADOS =====
-        const headers = ['Serial', 'Tipo', 'Placa'];
+        const headers = ['DESCRIPCION', 'MARCA', 'MODELO', 'SERIAL', 'PLACA'];
 
         headers.forEach((header, i) => {
             const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
 
             doc
                 .rect(x, tableTop, colWidths[i], rowHeight)
-                .stroke();
+                .fillAndStroke('#e8e8e8', '#000000');
 
-            doc.text(header, x, tableTop + 5, {
-                width: colWidths[i],
-                align: 'center'
-            });
+            doc
+                .fillColor('#000000')
+                .fontSize(9)
+                .font('Helvetica-Bold')
+                .text(header, x + 2, tableTop + 8, {
+                    width: colWidths[i] - 4,
+                    align: 'center'
+                });
         });
 
         // ===== FILAS =====
         let y = tableTop + rowHeight;
 
         activos.forEach((a) => {
-            const row = [a.serial, a.tipo, a.placa];
+            const row = [
+                a.descripcion || 'N/A',
+                a.marca || 'N/A',
+                a.modelo || 'N/A',
+                a.serial || 'N/A',
+                a.placa || 'N/A'
+            ];
 
             row.forEach((cell, i) => {
                 const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
@@ -86,10 +96,16 @@ function generarActaPDF({ responsable, activos, ubicacion, asignacionId }) {
                     .rect(x, y, colWidths[i], rowHeight)
                     .stroke();
 
-                doc.text(String(cell || ''), x, y + 5, {
-                    width: colWidths[i],
-                    align: 'center'
-                });
+                doc
+                    .fillColor('#000000')
+                    .fontSize(8)
+                    .font('Helvetica')
+                    .text(String(cell), x + 2, y + 8, {
+                        width: colWidths[i] - 4,
+                        align: 'center',
+                        lineBreak: false, // Evita saltos de línea no deseados
+                        ellipsis: true // Agrega "..." si el texto es muy largo
+                    });
             });
 
             y += rowHeight;
@@ -122,12 +138,14 @@ function generarActaPDF({ responsable, activos, ubicacion, asignacionId }) {
         // ===== NOMBRES =====
         doc.text(responsable.nombre, leftX, yFirma, {
             width: firmaWidth,
-            align: 'center'
+            align: 'center',
+            bold: true
         });
 
         doc.text('Miguel Angel Miranda Manjarres', rightX, yFirma, {
             width: firmaWidth,
-            align: 'center'
+            align: 'center',
+            bold: true
         });
 
         // ===== LÍNEAS DE FIRMA =====
