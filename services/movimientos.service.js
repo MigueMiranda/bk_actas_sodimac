@@ -23,6 +23,11 @@ class MovimientosService {
               attributes: ["id", "nombre"]
             }
           ]
+        },
+        {
+          model: models.Asignaciones,
+          as: "asignacion",
+          attributes: ["id", "estado_asignacion", "token", "created_at"]
         }
       ],
       order: [["id", "DESC"]]

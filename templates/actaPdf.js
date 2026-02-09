@@ -2,7 +2,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
-function generarActaPDF({ responsable, activos, ubicacion, asignacionId }) {
+function generarActaPDF({ responsable, activos, ubicacion, asignacionId, tienda }) {
     return new Promise((resolve, reject) => {
         const outputPath = path.join(
             __dirname,
@@ -11,6 +11,7 @@ function generarActaPDF({ responsable, activos, ubicacion, asignacionId }) {
 
         const doc = new PDFDocument({ margin: 50 });
         const stream = fs.createWriteStream(outputPath);
+        console.log('Tienda en actaPdf:', tienda);
 
         doc.pipe(stream);
 
@@ -29,6 +30,7 @@ function generarActaPDF({ responsable, activos, ubicacion, asignacionId }) {
             .fontSize(10)
             .text(`Fecha: ${new Date().toLocaleDateString()}`)
             .text(`Ubicación: ${ubicacion}`)
+            .text(`Tienda: ${tienda}`)
             .moveDown();
 
         // ===== DATOS RESPONSABLE =====
@@ -52,7 +54,7 @@ function generarActaPDF({ responsable, activos, ubicacion, asignacionId }) {
             .moveDown(0.8);
 
         const tableTop = doc.y;
-        const colWidths = [120, 80, 80, 100, 95];
+        const colWidths = [120, 70, 105, 100, 80];
         const tableWidth = colWidths.reduce((a, b) => a + b, 0);
         const startX = (doc.page.width - tableWidth) / 2;
         const rowHeight = 20;

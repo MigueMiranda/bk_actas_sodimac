@@ -9,8 +9,11 @@ const boom = require('@hapi/boom');
 
 
 const NotificacionService = require("./notificacion.service");
+const TiendasService = require("./tiendas.service");
+const serviceTiendas = new TiendasService();
 const service = new NotificacionService();
 const { generarActaPDF } = require('./../templates/actaPdf');
+const tiendasService = require("./tiendas.service");
 
 class AsignacionService {
   async aprobarAsignment(activos, contacto, ubicacion) {
@@ -80,7 +83,7 @@ class AsignacionService {
         to: 'mmiranda@homecenter.co',
         nameUser: contactoData.nombre,
         activos: listaHtml,
-        Ubicación: ubicacionData?.ubicacion,
+        ubicacion: ubicacion?.ubicacion,
         token: token,
       };
       console.log('Mail: ', mailOptions)
@@ -120,6 +123,9 @@ class AsignacionService {
       ],
     });
 
+    console.log("Asignación encontrada:", asignacion ? asignacion.toJSON() : "No encontrada");
+    console.log("Elemento encontrado:", asignacion?.elementos ? asignacion.elementos.map(e => e.toJSON()) : "No elementos");
+
     // ✅ VALIDACIÓN CRÍTICA UNIFICADA - exactamente como la tenías originalmente
     // Solo puede procesar si: existe, está pendiente Y el token NO ha expirado
     if (
@@ -127,8 +133,13 @@ class AsignacionService {
       asignacion.estado_asignacion !== "pendiente" ||
       (asignacion.tokenExpire && new Date(asignacion.tokenExpire) < new Date())
     ) {
+      if (asignacion.tokenExpire && new Date(asignacion.tokenExpire) < new Date()) {
+        await this.updateAsignacion(asignacion.id, "cancelado", "N/A");
+        await this.updateMovimiento(asignacion.id, "cancelado", "Token expirado", "N/A");
+      }
       throw boom.badRequest("Token expirado o asignación ya confirmada");
     }
+
 
     // === CASO APROBADO ===
     if (respuesta === "aprobado") {
@@ -136,7 +147,7 @@ class AsignacionService {
         serial: e.serial,
         placa: e.elemento?.placa,
         descripcion: e.elemento?.tipo || "Sin descripción",
-        ubicacion: e.elemento?.ubicacion,
+        ubicacion: e.ubicacionElemento,
         marca: e.elemento?.fabricante,
         modelo: e.elemento?.modelo,
       }));
@@ -144,12 +155,22 @@ class AsignacionService {
       const ubicacion = elementos[0]?.ubicacion || "Sin ubicación";
       let actaPath = "N/A";
 
+      const datosMovimiento = await models.Movimiento.findAll({
+        where: { asignacionId: asignacion.id },
+      });
+
+      await this.updateElemento(datosMovimiento);
+
+      const tienda = await serviceTiendas.findOne(datosMovimiento[0].tiendaId);
+      console.log("Tienda encontrada:", tienda.nombre);
+
       if (notificacion) {
         actaPath = await this.generarActaPDF(
           asignacion.users,
           elementos,
           ubicacion,
-          asignacion.id
+          asignacion.id,
+          tienda.nombre
         );
       }
 
@@ -160,12 +181,6 @@ class AsignacionService {
         "generado",
         actaPath
       );
-
-      const datosMovimiento = await models.Movimiento.findAll({
-        where: { asignacionId: asignacion.id },
-      });
-
-      await this.updateElemento(datosMovimiento);
 
       // ✅ CRÍTICO: Esta actualización cambia el estado de "pendiente" a "aprobado"
       await this.updateAsignacion(asignacion.id, "aprobado", actaPath);
@@ -193,7 +208,7 @@ class AsignacionService {
         await this.notificacion(null, asignacion, "N/A");
       }
 
-      return { message: "Asignación rechazada." };
+      return { message: "Asignación Rechazada por el usuario." };
     }
 
     // === RESPUESTA INVÁLIDA ===
@@ -202,7 +217,7 @@ class AsignacionService {
     }
   }
 
-  async generarActaPDF(contacto, activos, ubicacion, asignacionId) {
+  async generarActaPDF(contacto, activos, ubicacion, asignacionId, tienda) {
     console.log("Responsable: ", contacto)
     console.log("Activos para el acta: ", activos)
     return await generarActaPDF({
@@ -210,11 +225,12 @@ class AsignacionService {
         nombre: contacto.name,
         cedula: contacto.id,
         cargo: contacto.cargo,
-        username: contacto.username
+        username: contacto.username,
       },
       activos,
       ubicacion,
       asignacionId,
+      tienda,
     });
   }
 
@@ -276,11 +292,13 @@ class AsignacionService {
 
       const mailOptions = {
         to: "mmiranda@homecenter.co",
-        nameUser: asignacion.users.nombre,
+        nameUser: asignacion.users.name,
         elementos: elementos.length,
         activos: elementosHtml,
         path: actaPath,
       };
+
+      console.log("Enviando correo de confirmación con opciones:", mailOptions);
 
       await service.mailOptions(mailOptions, "confirmacion");
       return { estado: "exito", message: "Asignación confirmada correctamente", actaPath };

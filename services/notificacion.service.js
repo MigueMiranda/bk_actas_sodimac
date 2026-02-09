@@ -27,7 +27,7 @@ class NotifcacionService {
 
   async mailOptions(dataMail, tipoNotificacion) {
     let mailOptions = {};
-
+    console.log("Preparando notificación de tipo:", tipoNotificacion, "con datos:", dataMail);
     if (tipoNotificacion === "aprobacion") {
       mailOptions = {
         from: `"Activos TI" <${config.emailUser}>`,
